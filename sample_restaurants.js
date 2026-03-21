@@ -60,6 +60,16 @@ db.restaurants.aggregate([
     },
   },
   {
+    $match: {
+      $expr: {
+        $geoWithin: {
+          $geometry: { type: "Point", coordinates: "$address.coord" },
+          $polygon: "$neighbourhood.geometry.coordinates"
+        }
+      }
+    }
+  },
+  {
     $project: {
       _id: 0,
       name: 1,
@@ -95,45 +105,41 @@ db.restaurants.aggregate([
     },
   },
   {
-    $lookup: {
-      from: "neighbourhoods",
-      pipeline: [],
-      as: "neighbourhood",
-    },
-  },
-  {
     $group: {
-      _id: "$neighbourhood.name",
+      _id: null,
+      neighbourhoods: { $addToSet: "Unknown" },
     },
   },
   {
     $project: {
       _id: 0,
-      neighbourhood: "$_id",
+      neighbourhood: "$neighbourhoods",
     },
   },
 ]);
 
-// 6.List the names and addresses of restaurants that are located within the neighborhood boundaries of "Bedford" and have a grade score between 5 and 10.
+// 6.List the names and addresses of restaurants located in neighborhoods with a latitude value greater than 40.70, and return the highest grade score for each restaurant.
 db.restaurants.aggregate([
   { $unwind: "$grades" },
   {
     $match: {
-      "grades.score": { $gte: 5, $lte: 10 },
+      "address.coord.1": { $gt: 40.7 },
     },
   },
   {
-    $lookup: {
-      from: "neighbourhoods",
-      pipeline: [{ $match: { name: "Bedford" } }],
-      as: "neighbourhood",
+    $group: {
+      _id: "$_id",
+      name: { $first: "$name" },
+      address: { $first: "$address.street" },
+      highest_score: { $max: "$grades.score" },
     },
   },
   {
     $project: {
       _id: 0,
       name: 1,
-      address: "$address.street",
+      address: 1,
+      highest_score: 1,
     },
   },
 ]);
@@ -174,17 +180,26 @@ db.restaurants.aggregate([
 
 // 9.List the names and addresses of restaurants located in neighborhoods with a latitude value greater than 40.70, and return the highest grade score for each restaurant.
 db.restaurants.aggregate([
+  { $unwind: "$grades" },
   {
     $match: {
       "address.coord.1": { $gt: 40.7 },
     },
   },
   {
+    $group: {
+      _id: "$_id",
+      name: { $first: "$name" },
+      address: { $first: "$address.street" },
+      highestScore: { $max: "$grades.score" },
+    },
+  },
+  {
     $project: {
       _id: 0,
       name: 1,
-      address: "$address.street",
-      highestScore: { $max: "$grades.score" },
+      address: 1,
+      highestScore: 1,
     },
   },
 ]);

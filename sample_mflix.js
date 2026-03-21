@@ -8,7 +8,7 @@ db.comments.aggregate([
       as: "movie",
     },
   },
-  { $match: { "movie.imdb_rating": { $gt: 7.0 } } },
+  { $match: { "movie.imdb.rating": { $gt: 7.0 } } },
   {
     $lookup: {
       from: "users",
@@ -46,7 +46,7 @@ db.comments.aggregate([
 
 // 3.Find all movies that were released before 1950 and have received an IMDb rating of 7.0 or higher. List the movie titles and the number of comments on each movie.**
 db.movies.aggregate([
-  { $match: { year: { $lt: 1950 }, imdb_rating: { $gte: 7.0 } } },
+  { $match: { year: { $lt: 1950 }, "imdb.rating": { $gte: 7.0 } } },
   {
     $lookup: {
       from: "comments",
@@ -71,7 +71,7 @@ db.theaters.find(
 
 // 5.Retrieve all comments made on movies where the user's email address is "mercedes_tyler@fakegmail.com." Include the name of the user, movie title, and the comment text.**
 db.comments.aggregate([
-  { $match: { email: "mercedestyler@fakegmail.com" } },
+  { $match: { email: "mercedes_tyler@fakegmail.com" } },
   {
     $lookup: {
       from: "movies",
@@ -136,42 +136,36 @@ db.comments.aggregate([
 ]);
 
 // 8.List the names of the users who have an active session (i.e., whose session JWT token is not expired). For each user, display their name, email, and the movie titles they have commented on.**
-db.sessions.aggregate([
-  {
-    $addFields: {
-      exp: {
-        $arrayElemAt: [
-          { $split: [{ $arrayElemAt: [{ $split: ["$jwt", "."] }, 1] }, "."] },
-          0,
-        ],
-      },
-    },
-  },
-  {
-    $addFields: {
-      exp_num: { $toLong: { $base64ToString: "$exp" } },
-      now: {
-        $toLong: {
-          $dateToString: { format: "%Y-%m-%dT%H:%M:%S.%LZ", date: new Date() },
-        },
-      },
-    },
-  },
-  { $match: { exp_num: { $gt: "$now" } } },
+db.comments.aggregate([
   {
     $lookup: {
       from: "users",
-      localField: "userid",
-      foreignField: "_id",
+      localField: "email",
+      foreignField: "email",
       as: "user",
     },
   },
   {
     $lookup: {
-      from: "comments",
-      let: { email: { $arrayElemAt: ["$user.email", 0] } },
-      pipeline: [{ $match: { $expr: { $eq: ["$email", "$$email"] } } }],
-      as: "comments",
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  {
+    $group: {
+      _id: "$email",
+      name: { $first: "$user.name" },
+      movies: { $push: "$movie.title" },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: 1,
+      email: "$_id",
+      movies: 1,
     },
   },
 ]);
@@ -184,7 +178,7 @@ db.movies
   })
   .forEach((movie) => {
     print(
-      `${movie.title} (${movie.year}): ${movie.plot} - RT: ${movie.tomatoes.viewerRating}`
+      `${movie.title} (${movie.year}): ${movie.plot} - RT: ${movie.tomatoes.viewer.rating}`
     );
   });
 

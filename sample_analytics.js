@@ -75,7 +75,7 @@ db.transactions.insertOne({
 
 // READ:
 // 3.Find all customers who are active and have an account with ID `371138`.
-db.customers.find({ active: true, accounts: "371138" });
+db.customers.find({ active: true, accounts: 371138 });
 
 // 4.Retrieve all transactions from the `transactions` collection where the `symbol` is "ibm" and the `transaction_code` is "sell".
 db.transactions.find(
@@ -98,7 +98,7 @@ db.accounts.find({ products: "Derivatives" }).map((acc) => acc.accountid),
 
 // 6.Retrieve the names and email addresses of all customers who have a `tier_and_details` object with a tier of "Bronze".
 db.customers.find(
-  { tier_and_details: { $elemMatch: { tier: "Bronze" } } },
+  { "tier_and_details.Bronze.tier": "Bronze" },
   { name: 1, email: 1 }
 );
 

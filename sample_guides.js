@@ -61,7 +61,7 @@ db.planets.updateOne(
 // 6.Update the document of the planet "Venus" to add "Oxygen" to its `mainAtmosphere` array.
 db.planets.updateOne(
   {
-    name: "Mercury",
+    name: "Venus",
   },
   {
     $push: {
