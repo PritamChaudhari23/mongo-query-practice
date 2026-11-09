@@ -1,16 +1,16 @@
 const { MongoClient, ObjectId } = require("mongodb");
 
-const connectToDatabase = async () => {
-  await client.connect();
-  console.log("Connected to MongoDB");
-};
-
 // DATABASE CONFIGURATION
 const dbname = "bank";
 const collection_name = "accounts";
 
 // DATABASE CONNECTION
 const client = new MongoClient(process.env.MONGODB_URI);
+
+const connectToDatabase = async () => {
+  await client.connect();
+  console.log("Connected to MongoDB");
+};
 
 // COLLECTION
 const database = client.db(dbname);
@@ -21,7 +21,7 @@ const sampleAccount = {
   account_holder: "Linus Torvalds",
   account_id: "MDB829001337",
   account_type: "checking",
-  balance: 50352434,
+  balance: 10000,
 };
 
 const sampleAccounts = [
@@ -35,24 +35,44 @@ const sampleAccounts = [
     account_id: "MDB829000001",
     account_holder: "Muhammad ibn Musa al-Khwarizmi",
     account_type: "savings",
-    balance: 267914296,
+    balance: 10000,
   },
 ];
 
 // FIND
-const documentToFind = { _id: ObjectId("62a3638521a9ad028fdf77a3") };
-const documentsToFind = { balance: { $gt: 4700 } };
+const documentToFind = {
+  _id: new ObjectId("62a3638521a9ad028fdf77a3"),
+};
+
+const documentsToFind = {
+  balance: { $gt: 4700 },
+};
 
 // UPDATE
-const documentToUpdate = { _id: ObjectId("62d6e04ecab6d8e130497482") };
-const update = { $inc: { balance: 100 } };
+const documentToUpdate = {
+  _id: new ObjectId("62d6e04ecab6d8e130497482"),
+};
 
-const documentsToUpdate = { account_type: "checking" };
-const update02 = { $push: { transfers_complete: "TR413308000" } };
+const update = {
+  $inc: { balance: 100 },
+};
+
+const documentsToUpdate = {
+  account_type: "checking",
+};
+
+const update02 = {
+  $push: { transfers_complete: "TR413308000" },
+};
 
 // DELETE
-const documentToDelete = { _id: ObjectId("62d6e04ecab6d8e13049749c") };
-const documentsToDelete = { balance: { $lt: 500 } };
+const documentToDelete = {
+  _id: new ObjectId("62d6e04ecab6d8e13049749c"),
+};
+
+const documentsToDelete = {
+  balance: { $lt: 500 },
+};
 
 const main = async () => {
   try {
@@ -67,9 +87,9 @@ const main = async () => {
     // console.log(`Inserted ${result.insertedCount} documents`);
 
     // FIND
-    // const result = accountsCollection.find(documentsToFind);
-    // const docCount = await accountsCollection.countDocuments(documentsToFind);
-    // await result.forEach((doc) => console.log(doc));
+    // const result = await accountsCollection.find(documentsToFind).toArray();
+    // const docCount = result.length;
+    // result.forEach((doc) => console.log(doc));
     // console.log(`Found ${docCount} documents`);
 
     // FIND ONE
@@ -82,7 +102,7 @@ const main = async () => {
     // console.log(
     //   result.modifiedCount === 1
     //     ? "Updated one document"
-    //     : "No documents updated",
+    //     : "No documents updated"
     // );
 
     // UPDATE MANY
@@ -109,12 +129,10 @@ const main = async () => {
     //     : "No documents deleted"
     // );
   } catch (err) {
-    console.error(`Error in operation: ${err}`);
+    console.error(`Error in operation: ${err.message}`);
   } finally {
     await client.close();
   }
 };
 
 main();
-
-// -------------------------------------------------------------------------------------------------------------------------------
