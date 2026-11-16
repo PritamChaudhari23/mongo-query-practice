@@ -324,3 +324,39 @@ db.planets.updateOne(
 );
 
 db.planets.find().sort({ orderFromSun: 1 });
+
+// Q28. Find routes connected to SEA, operated by American Airlines or using airplane 320
+// in the `routes` collection of the `sample_training` database.
+db.routes.find({
+  $and: [
+    {
+      $or: [{ dst_airport: "SEA" }, { src_airport: "SEA" }],
+    },
+    {
+      $or: [{ "airline.name": "American Airlines" }, { airplane: 320 }],
+    },
+  ],
+});
+
+// Q29. Find sales containing a laptop priced above 800 with quantity at least 1
+// in the `sales` collection of the `sample_supplies` database.
+db.sales.find({
+  items: {
+    $elemMatch: {
+      name: "laptop",
+      price: { $gt: 800 },
+      quantity: { $gte: 1 },
+    },
+  },
+});
+
+// Q30. Count all documents in the `trips` collection
+// of the `sample_training` database.
+db.trips.countDocuments({});
+
+// Q31. Find the top three music companies by employee count, using _id as a tie-breaker
+// in the `companies` collection of the `sample_training` database.
+db.companies
+  .find({ category_code: "music" })
+  .sort({ number_of_employees: -1, _id: 1 })
+  .limit(3);

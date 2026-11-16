@@ -174,3 +174,11 @@ db.restaurants.find(
     name: 1,
   },
 );
+
+// Q14. Find restaurant inspections with result Pass or Warning,
+// excluding date and address.zip
+// in the `inspections` collection of the `sample_training` database.
+db.inspections.find(
+  { result: { $in: ["Pass", "Warning"] } },
+  { date: 0, "address.zip": 0 },
+);

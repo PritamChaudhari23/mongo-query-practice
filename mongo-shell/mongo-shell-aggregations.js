@@ -426,3 +426,230 @@ db.restaurants.aggregate([
     },
   },
 ]);
+
+// Q16. Calculate total revenue for each book genre during 2024
+// in the `sales` collection (database not specified in source).
+db.sales.aggregate([
+  {
+    $match: {
+      date: {
+        $gte: ISODate("2024-01-01T00:00:00.000Z"),
+        $lt: ISODate("2025-01-01T00:00:00.000Z"),
+      },
+    },
+  },
+  { $unwind: { path: "$books" } },
+  {
+    $group: {
+      _id: "$books.genre",
+      totalRevenue: { $sum: "$books.price" },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      genre: "$_id",
+      totalRevenue: 1,
+    },
+  },
+]);
+
+// Q17. Calculate 2024 revenue by book genre and save the results
+// in the `analysis_report` collection (database not specified in source).
+db.sales.aggregate([
+  {
+    $match: {
+      date: {
+        $gte: ISODate("2024-01-01T00:00:00.000Z"),
+        $lt: ISODate("2025-01-01T00:00:00.000Z"),
+      },
+    },
+  },
+  { $unwind: { path: "$books" } },
+  {
+    $group: {
+      _id: "$books.genre",
+      totalRevenue: { $sum: "$books.price" },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      genre: "$_id",
+      totalRevenue: 1,
+    },
+  },
+  { $out: "analysis_report" },
+]);
+
+// Q18. Calculate the average rating per book for reviews after January 2018,
+// sort by average rating descending, and return the top 10
+// in the `reviews` collection (database not specified in source).
+db.reviews.aggregate([
+  {
+    $match: {
+      timestamp: {
+        $gt: ISODate("2018-01-01T05:00:00.000Z"),
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$book_id",
+      averageRating: { $avg: "$rating" },
+    },
+  },
+  { $sort: { averageRating: -1 } },
+  { $limit: 10 },
+]);
+
+// Q19. Calculate the top 10 books by average rating for reviews after January 2018
+// and save the results in the `reviews_analysis` collection
+// (database not specified in source).
+db.reviews.aggregate([
+  {
+    $match: {
+      timestamp: {
+        $gt: ISODate("2018-01-01T05:00:00.000Z"),
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$book_id",
+      averageRating: { $avg: "$rating" },
+    },
+  },
+  { $sort: { averageRating: -1 } },
+  { $limit: 10 },
+  { $out: "reviews_analysis" },
+]);
+
+// Q20. Find customers who purchased books in Children's literature,
+// and return their name, email, and matching book titles
+// by joining the `sales` and `customers` collections (database not specified in source).
+db.sales.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customer",
+      foreignField: "_id",
+      as: "customer_details",
+    },
+  },
+  {
+    $unwind: {
+      path: "$customer_details",
+    },
+  },
+  {
+    $set: {
+      childrensBooks: {
+        $filter: {
+          input: "$books",
+          as: "book",
+          cond: {
+            $eq: ["$$book.genre", "Children's literature"],
+          },
+        },
+      },
+    },
+  },
+  {
+    $match: {
+      childrensBooks: {
+        $ne: [],
+      },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      customerName: {
+        $concat: [
+          "$customer_details.name.first",
+          " ",
+          "$customer_details.name.last",
+        ],
+      },
+      email: "$customer_details.email",
+      childrensBooks: "$childrensBooks.title",
+    },
+  },
+]);
+
+// Q21. Generate customer book recommendations and save them
+// in the `book_recommendations` collection
+// by joining the `sales` and `customers` collections (database not specified in source).
+db.sales.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customer",
+      foreignField: "_id",
+      as: "customer_details",
+    },
+  },
+  {
+    $unwind: {
+      path: "$customer_details",
+    },
+  },
+  {
+    $set: {
+      childrensBooks: {
+        $filter: {
+          input: "$books",
+          as: "book",
+          cond: {
+            $eq: ["$$book.genre", "Children's literature"],
+          },
+        },
+      },
+    },
+  },
+  {
+    $match: {
+      childrensBooks: {
+        $ne: [],
+      },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      customerName: {
+        $concat: [
+          "$customer_details.name.first",
+          " ",
+          "$customer_details.name.last",
+        ],
+      },
+      email: "$customer_details.email",
+      childrensBooks: "$childrensBooks.title",
+    },
+  },
+  { $out: "book_recommendations" },
+]);
+
+// Q22. Explain the execution plan for grouping books by genre
+// and calculating average ratings in the `books` collection
+// (database not specified in source).
+db.books.explain().aggregate([
+  {
+    $match: {
+      date_of_original_publication: {
+        $gte: "2020",
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$genre",
+      genre_average_rating: {
+        $avg: "$average_rating",
+      },
+    },
+  },
+  { $sort: { genre_average_rating: -1 } },
+]);
