@@ -1,43 +1,155 @@
-/*
-MONGODB SAMPLE QUERIES — PROJECTIONS
-Condensed from the 9 original sample_* files.
+// ============================================================
+// FIELD INCLUSION
+// ============================================================
 
-A projection controls WHICH FIELDS are returned.
-find(filter, projection) has two separate arguments:
-1. filter     — which documents to return
-2. projection — which fields to include/exclude in those documents
-*/
+// Q1. Find listings with review scores above 85 and return their names, prices and review scores from the listingsAndReviews collection of the sample_airbnb database.
+db.listingsAndReviews.find(
+  {
+    "review_scores.review_scores_rating": { $gt: 85 },
+  },
+  {
+    name: 1,
+    price: 1,
+    review_scores: 1,
+  },
+);
 
-// =============================================================================
-// 1. INCLUDE SELECTED FIELDS
-// =============================================================================
-
-// Include chosen fields. _id is included by default unless explicitly excluded.
-// Source pattern: sample_geospatial.js.
+// Q2. Find visible shipwrecks and return only record number, vessel terms and coordinates from the shipwrecks collection of the sample_geospatial database.
 db.shipwrecks.find(
   { feature_type: "Wrecks - Visible" },
-  { recrd: 1, vesslterms: 1, coordinates: 1 },
+  {
+    recrd: 1,
+    vesslterms: 1,
+    coordinates: 1,
+  },
 );
 
-// =============================================================================
-// 2. EXCLUDE FIELDS
-// =============================================================================
-
-// Exclude selected fields; all other fields are returned.
-// Source pattern: sample_restaurants.js / sample_training.js.
-db.inspections.find(
-  { result: "No Violation Issued" },
-  { date: 0, "address.zip": 0 },
+// Q3. Find transactions involving IBM sells and return only their transaction details from the transactions collection of the sample_analytics database.
+db.transactions.find(
+  {
+    "transactions.symbol": "ibm",
+    "transactions.transaction_code": "sell",
+  },
+  {
+    transactions: 1,
+  },
 );
 
-// =============================================================================
-// 3. NESTED FIELD PROJECTION
-// =============================================================================
+// Q4. Find trips taken by users born before 1970 and return trip duration, start station, end station and user type, excluding _id, from the trips collection of the sample_training database.
+db.trips.find(
+  {
+    "birth year": { $lt: 1970 },
+  },
+  {
+    _id: 0,
+    tripduration: 1,
+    "start station name": 1,
+    "end station name": 1,
+    usertype: 1,
+  },
+);
 
-// Select specific fields inside an embedded document.
-// Source pattern: sample_training.js.
+// Q5. Find Aerocondor routes and return source airport, destination airport and number of stops from the routes collection of the sample_training database.
+db.routes.find(
+  {
+    "airline.name": "Aerocondor",
+  },
+  {
+    _id: 0,
+    src_airport: 1,
+    dst_airport: 1,
+    stops: 1,
+  },
+);
+
+// Q6. Find students with an exam score above 90 and return student ID and scores from the grades collection of the sample_training database.
+db.grades.find(
+  {
+    scores: {
+      $elemMatch: {
+        type: "exam",
+        score: { $gt: 90 },
+      },
+    },
+  },
+  {
+    _id: 0,
+    student_id: 1,
+    scores: 1,
+  },
+);
+
+// Q7. Find companies acquired for more than 25 million and return company name, acquisition price and acquiring company name from the companies collection of the sample_training database.
+db.companies.find(
+  {
+    "acquisition.price_amount": { $gt: 25000000 },
+  },
+  {
+    _id: 0,
+    name: 1,
+    "acquisition.price_amount": 1,
+    "acquisition.acquiring_company.name": 1,
+  },
+);
+
+// Q8. Find cities with population above 40,000 and return city, state and population from the zips collection of the sample_training database.
+db.zips.find(
+  {
+    pop: { $gt: 40000 },
+  },
+  {
+    _id: 0,
+    city: 1,
+    state: 1,
+    pop: 1,
+  },
+);
+
+// Q9. Find a weather record by ID and return air temperature and pressure from the data collection of the sample_weatherdata database.
+db.data.find(
+  {
+    _id: ObjectId("5553a998e4b02cf7151190b8"),
+  },
+  {
+    airTemperature: 1,
+    pressure: 1,
+  },
+);
+
+// Q10. Find a sale by ID and return only item names and prices from the sales collection of the sample_supplies database.
+db.sales.find(
+  {
+    _id: ObjectId("5bd761dcae323e45a93ccfe8"),
+  },
+  {
+    "items.name": 1,
+    "items.price": 1,
+  },
+);
+
+// Q11. Find California theatres and return theatre ID, street, city and coordinates from the theaters collection of the sample_mflix database.
+db.theaters.find(
+  {
+    "location.address.state": "CA",
+  },
+  {
+    theaterId: 1,
+    "location.address.street": 1,
+    "location.address.city": 1,
+    "location.coordinates": 1,
+  },
+);
+
+// ============================================================
+// FIELD EXCLUSION
+// ============================================================
+
+// Q12. Find inspections with result "No Violation Issued" in 2015 and exclude the _id field from the inspections collection of the sample_training database.
 db.inspections.find(
-  { result: "No Violation Issued" },
+  {
+    result: "No Violation Issued",
+    date: { $regex: /2015/ },
+  },
   {
     _id: 0,
     business_name: 1,
@@ -48,46 +160,17 @@ db.inspections.find(
   },
 );
 
-// =============================================================================
-// 4. PROJECT FIELDS FROM EMBEDDED ARRAY DOCUMENTS
-// =============================================================================
-
-// Return selected fields from each embedded item.
-// Source pattern: sample_supplies.js.
-db.sales.find(
-  { _id: ObjectId("5bd761dcae323e45a93ccfe8") },
-  { "items.name": 1, "items.price": 1 },
-);
-
-// =============================================================================
-// 5. INCLUDE FIELDS AND EXCLUDE _id
-// =============================================================================
-
-// _id: 0 is the special allowed exclusion in an inclusion projection.
-// Source pattern: sample_training.js.
-db.trips.find(
-  { "birth year": { $lt: 1970 } },
+// Q13. Find Brooklyn restaurants within the specified longitude range and return only their names from the restaurants collection of the sample_restaurants database.
+db.restaurants.find(
+  {
+    borough: "Brooklyn",
+    "address.coord.0": {
+      $gte: -73.95,
+      $lte: -73.9,
+    },
+  },
   {
     _id: 0,
-    tripduration: 1,
-    "start station name": 1,
-    "end station name": 1,
-    usertype: 1,
+    name: 1,
   },
 );
-
-// =============================================================================
-// PROJECTION RULES
-// =============================================================================
-
-/*
-- Inclusion projection: { fieldA: 1, fieldB: 1 }
-  Returns only those fields, plus _id unless excluded.
-- Exclusion projection: { fieldA: 0, fieldB: 0 }
-  Returns all fields except those listed.
-- Do not mix inclusion and exclusion in one projection, except for _id.
-- Dot notation selects nested fields.
-- Projection does not filter documents; the first find() argument does that.
-- These source files demonstrate find() projections. They do not contain
-  distinct examples of $slice or projection-form $elemMatch.
-*/

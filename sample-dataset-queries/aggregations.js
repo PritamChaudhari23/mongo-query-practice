@@ -1,25 +1,15 @@
-/*
-MONGODB SAMPLE QUERIES — AGGREGATION
-Condensed from the 9 original sample_* files.
+// ============================================================
+// $MATCH + $PROJECT
+// ============================================================
 
-An aggregation pipeline passes documents through ordered stages.
-Keep only distinct pipeline patterns; collection names and literal values
-have been consolidated where they do not add a new concept.
-*/
-
-// =============================================================================
-// 1. $MATCH + $PROJECT
-// =============================================================================
-
-// Filter documents, then shape the output and calculate a field.
-// Source pattern: sample_training.js.
+// Q1. Find food-related posts created during 2012 and return title, author and comment count from the posts collection of the sample_training database.
 db.posts.aggregate([
   {
     $match: {
       tags: "food",
       date: {
-        $gte: new Date("2012-01-01T00:00:00.000Z"),
-        $lt: new Date("2013-01-01T00:00:00.000Z"),
+        $gte: new Date("2012-01-01"),
+        $lt: new Date("2013-01-01"),
       },
     },
   },
@@ -33,13 +23,30 @@ db.posts.aggregate([
   },
 ]);
 
-// =============================================================================
-// 2. $UNWIND + $MATCH + $GROUP
-// =============================================================================
+// Q2. Find restaurants with longitude between -73.94 and -73.92 and return their names and grade details from the restaurants collection of the sample_restaurants database.
+db.restaurants.aggregate([
+  {
+    $match: {
+      "address.coord.0": {
+        $gte: -73.94,
+        $lte: -73.92,
+      },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: 1,
+      grades: 1,
+    },
+  },
+]);
 
-// Turn array elements into separate pipeline documents, filter them,
-// then calculate a total.
-// Source pattern: sample_supplies.js.
+// ============================================================
+// $UNWIND + $MATCH + $GROUP
+// ============================================================
+
+// Q3. Calculate the total quantity sold for the item "notepad" from the sales collection of the sample_supplies database.
 db.sales.aggregate([
   { $unwind: "$items" },
   { $match: { "items.name": "notepad" } },
@@ -51,15 +58,14 @@ db.sales.aggregate([
   },
 ]);
 
-// =============================================================================
-// 3. $GROUP WITH $MAX
-// =============================================================================
-
-// Group the unwound grade records back by restaurant and find the highest score.
-// Source pattern: sample_restaurants.js (duplicate exercises 6 and 9 reduced to one).
+// Q4. Find restaurants with latitude above 40.70 and calculate the highest grade score for each restaurant from the restaurants collection of the sample_restaurants database.
 db.restaurants.aggregate([
   { $unwind: "$grades" },
-  { $match: { "address.coord.1": { $gt: 40.7 } } },
+  {
+    $match: {
+      "address.coord.1": { $gt: 40.7 },
+    },
+  },
   {
     $group: {
       _id: "$_id",
@@ -78,134 +84,13 @@ db.restaurants.aggregate([
   },
 ]);
 
-// =============================================================================
-// 4. CALCULATE VALUES WITH $MULTIPLY
-// =============================================================================
-
-// Calculate total value across an array: price * quantity, summed per sale.
-// Source pattern: sample_supplies.js.
-db.sales.aggregate([
-  { $unwind: "$items" },
-  {
-    $group: {
-      _id: "$_id",
-      totalPrice: {
-        $sum: { $multiply: ["$items.price", "$items.quantity"] },
-      },
-    },
-  },
-  { $match: { totalPrice: { $lt: 100 } } },
-]);
-
-// =============================================================================
-// 5. $LOOKUP — JOIN TWO COLLECTIONS
-// =============================================================================
-
-// Join comments to movies using a matching field.
-// $lookup places matching documents in an ARRAY.
-// Source pattern: sample_mflix.js.
-db.comments.aggregate([
-  {
-    $lookup: {
-      from: "movies",
-      localField: "movie_id",
-      foreignField: "_id",
-      as: "movie",
-    },
-  },
-  { $match: { "movie.imdb.rating": { $gt: 7.0 } } },
-  {
-    $project: {
-      email: 1,
-      movieTitle: { $arrayElemAt: ["$movie.title", 0] },
-    },
-  },
-]);
-
-// =============================================================================
-// 6. MULTIPLE $LOOKUP STAGES
-// =============================================================================
-
-// Join comments to movies and users, then return fields from both joins.
-// Source pattern: sample_mflix.js.
-db.comments.aggregate([
-  {
-    $lookup: {
-      from: "movies",
-      localField: "movie_id",
-      foreignField: "_id",
-      as: "movie",
-    },
-  },
-  {
-    $lookup: {
-      from: "users",
-      localField: "email",
-      foreignField: "email",
-      as: "user",
-    },
-  },
-  {
-    $project: {
-      _id: 0,
-      name: { $arrayElemAt: ["$user.name", 0] },
-      title: { $arrayElemAt: ["$movie.title", 0] },
-      email: 1,
-    },
-  },
-]);
-
-// =============================================================================
-// 7. $LOOKUP + $GROUP
-// =============================================================================
-
-// Join comments to users and movies, then group comments by user.
-// The joined fields are arrays because $lookup returns arrays.
-// This follows the original sample_mflix.js pattern.
-db.comments.aggregate([
-  {
-    $lookup: {
-      from: "users",
-      localField: "email",
-      foreignField: "email",
-      as: "user",
-    },
-  },
-  {
-    $lookup: {
-      from: "movies",
-      localField: "movie_id",
-      foreignField: "_id",
-      as: "movie",
-    },
-  },
-  {
-    $group: {
-      _id: "$email",
-      name: { $first: "$user.name" },
-      movies: { $push: "$movie.title" },
-    },
-  },
-  {
-    $project: {
-      _id: 0,
-      name: 1,
-      email: "$_id",
-      movies: 1,
-    },
-  },
-]);
-
-// =============================================================================
-// 8. $EXPR — COMPARE TWO FIELDS IN THE SAME DOCUMENT
-// =============================================================================
-
-// $expr allows aggregation expressions inside a query/pipeline match.
-// Source pattern: sample_training.js.
+// Q5. Find trips that started and ended at the same station and count the number of such trips from the trips collection of the sample_training database.
 db.trips.aggregate([
   {
     $match: {
-      $expr: { $eq: ["$start station name", "$end station name"] },
+      $expr: {
+        $eq: ["$start station name", "$end station name"],
+      },
     },
   },
   {
@@ -227,12 +112,27 @@ db.trips.aggregate([
   },
 ]);
 
-// =============================================================================
-// 9. $UNWIND + $MATCH + $SORT + $LIMIT
-// =============================================================================
+// Q6. Calculate the total price of each sale using item price multiplied by quantity, and return sales below 100 from the sales collection of the sample_supplies database.
+db.sales.aggregate([
+  { $unwind: "$items" },
+  {
+    $group: {
+      _id: "$_id",
+      totalPrice: {
+        $sum: {
+          $multiply: ["$items.price", "$items.quantity"],
+        },
+      },
+    },
+  },
+  { $match: { totalPrice: { $lt: 100 } } },
+]);
 
-// Find top three companies after matching a nested relationship.
-// Source pattern: sample_training.js.
+// ============================================================
+// $SORT + $LIMIT
+// ============================================================
+
+// Q7. Find the top three companies associated with Ben Elowitz, sorted by employee count, from the companies collection of the sample_training database.
 db.companies.aggregate([
   { $unwind: "$relationships" },
   {
@@ -253,16 +153,231 @@ db.companies.aggregate([
   { $limit: 3 },
 ]);
 
-// =============================================================================
-// 10. $REGEX + $UNWIND + SECOND $MATCH + $PROJECT
-// =============================================================================
+// ============================================================
+// $LOOKUP — JOIN COLLECTIONS
+// ============================================================
 
-// Filter a text field, unwind funding rounds, then filter each array element.
-// Source pattern: sample_training.js.
+// Q8. Find users who commented on movies with IMDb ratings above 7 and return each user's name, email and movie titles. Use the comments, movies and users collections of the sample_mflix database.
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  { $unwind: "$movie" },
+  {
+    $match: {
+      "movie.imdb.rating": { $gt: 7 },
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "email",
+      foreignField: "email",
+      as: "user",
+    },
+  },
+  {
+    $group: {
+      _id: "$email",
+      name: { $first: { $arrayElemAt: ["$user.name", 0] } },
+      movies: { $push: "$movie.title" },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: 1,
+      email: "$_id",
+      movies: 1,
+    },
+  },
+]);
+
+// Q9. Find users who commented on Action movies and return their names, email addresses and comment counts. Use the comments, movies and users collections of the sample_mflix database.
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  { $unwind: "$movie" },
+  { $match: { "movie.genres": "Action" } },
+  {
+    $group: {
+      _id: "$email",
+      commentCount: { $sum: 1 },
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "_id",
+      foreignField: "email",
+      as: "user",
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: { $arrayElemAt: ["$user.name", 0] },
+      email: "$_id",
+      commentCount: 1,
+    },
+  },
+]);
+
+// Q10. Find movies released before 1950 with IMDb ratings of at least 7 and calculate their comment counts using the movies and comments collections of the sample_mflix database.
+db.movies.aggregate([
+  {
+    $match: {
+      year: { $lt: 1950 },
+      "imdb.rating": { $gte: 7 },
+    },
+  },
+  {
+    $lookup: {
+      from: "comments",
+      localField: "_id",
+      foreignField: "movie_id",
+      as: "comments",
+    },
+  },
+  {
+    $project: {
+      title: 1,
+      comments_count: { $size: "$comments" },
+    },
+  },
+]);
+
+// Q11. Find comments made by a specific user and return the user's name, movie title and comment text. Use the comments, movies and users collections of the sample_mflix database.
+db.comments.aggregate([
+  {
+    $match: {
+      email: "mercedes_tyler@fakegmail.com",
+    },
+  },
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "email",
+      foreignField: "email",
+      as: "user",
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: { $arrayElemAt: ["$user.name", 0] },
+      title: { $arrayElemAt: ["$movie.title", 0] },
+      text: 1,
+    },
+  },
+]);
+
+// Q12. Find comments on Western movies released in 1903 and return movie title, comment text and user email. Use the comments, movies and users collections of the sample_mflix database.
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  { $unwind: "$movie" },
+  {
+    $match: {
+      "movie.genres": "Western",
+      "movie.year": 1903,
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "email",
+      foreignField: "email",
+      as: "user",
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      title: "$movie.title",
+      text: 1,
+      email: 1,
+    },
+  },
+]);
+
+// Q13. Find comments on Drama movies released after 2000 and return the user's name, movie title and comment date. Use the comments, movies and users collections of the sample_mflix database.
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie",
+    },
+  },
+  { $unwind: "$movie" },
+  {
+    $match: {
+      "movie.genres": "Drama",
+      "movie.year": { $gt: 2000 },
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "email",
+      foreignField: "email",
+      as: "user",
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: { $arrayElemAt: ["$user.name", 0] },
+      title: "$movie.title",
+      date: 1,
+    },
+  },
+]);
+
+// ============================================================
+// $REGEX + $UNWIND + MULTIPLE $MATCH
+// ============================================================
+
+// Q14. Find media-platform companies with funding rounds above 10 million and return company name, funding amount and founding year from the companies collection of the sample_training database.
 db.companies.aggregate([
-  { $match: { tag_list: { $regex: /media-platform/ } } },
+  {
+    $match: {
+      tag_list: { $regex: /media-platform/ },
+    },
+  },
   { $unwind: "$funding_rounds" },
-  { $match: { "funding_rounds.raised_amount": { $gt: 10000000 } } },
+  {
+    $match: {
+      "funding_rounds.raised_amount": { $gt: 10000000 },
+    },
+  },
   {
     $project: {
       _id: 0,
@@ -273,26 +388,41 @@ db.companies.aggregate([
   },
 ]);
 
-// =============================================================================
-// AGGREGATION STAGE / OPERATOR MAP
-// =============================================================================
+// Q15. Find American restaurants with a grade score of at least 7 and retrieve matching neighbourhood documents using a pipeline-based $lookup from the restaurants and neighbourhoods collections of the sample_restaurants database.
+// SOURCE LIMITATION: The original query declares a let variable but never uses it. This preserves the lookup pattern, not a correct geographical match.
 
-/*
-Stages:
-$match     — filter documents
-$project   — shape output / compute fields
-$unwind    — create one pipeline document per array element
-$group     — group documents and calculate values
-$lookup    — join another collection
-$sort      — sort pipeline results
-$limit     — cap the number of results
-
-Expressions / accumulators used in these source files:
-$sum, $max, $first, $addToSet, $multiply, $size, $arrayElemAt, $eq
-
-Important:
-- $lookup returns an array in its "as" field.
-- $unwind on an array can increase the number of pipeline documents.
-- $group changes the document shape; _id defines the grouping key.
-- $project can rename fields using "$existingField".
-*/
+db.restaurants.aggregate([
+  { $unwind: "$grades" },
+  {
+    $match: {
+      cuisine: "American",
+      "grades.score": { $gte: 7 },
+    },
+  },
+  {
+    $lookup: {
+      from: "neighbourhoods",
+      let: {
+        lng: { $arrayElemAt: ["$address.coord", 0] },
+      },
+      pipeline: [
+        {
+          $match: {
+            "geometry.coordinates.0.0.0": { $lte: -73.9 },
+          },
+        },
+      ],
+      as: "neighbourhood",
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      name: 1,
+      address: "$address.street",
+      neighbourhood: {
+        $arrayElemAt: ["$neighbourhood.name", 0],
+      },
+    },
+  },
+]);
